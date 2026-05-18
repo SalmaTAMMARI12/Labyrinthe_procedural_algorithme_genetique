@@ -1,7 +1,7 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-from env.maze_generator import generate_maze
+from labyrinthe_ag.env.maze_generator import generate_maze
 
 WALL = 0
 PATH = 1

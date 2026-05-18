@@ -1,19 +1,47 @@
-from collections import deque 
-class BFSAgent: 
-    def __init__(self, env): self.env = env 
-    def decide(self, obs): 
-        grid = self.env.grid 
-        start = tuple(self.env.agent_pos) 
-        size = self.env.size 
-        queue = deque([(start, [])]) 
-        visited = {start} 
-        moves = [(-1,0),(1,0),(0,-1),(0,1)] 
-        while queue: 
-            (r, c), path = queue.popleft() 
-            if grid[r][c] == 5: return path[0] if path else 0  # EXIT 
-            for i, (dr, dc) in enumerate(moves): 
-                nr, nc = r+dr, c+dc 
-                if 0<=nr<size and 0<=nc<size and (nr,nc) not in visited and grid[nr][nc]!=0: 
-                    visited.add((nr,nc)) 
-                    queue.append(((nr,nc), path+[i])) 
-        return 0
+from collections import deque
+
+
+class BFSAgent:
+    """Agent heuristique BFS — connaît toute la grille (borne supérieure)."""
+
+    def __init__(self, env):
+        self.env = env
+
+    def decide(self, obs):
+        # S'assurer que l'env a bien été reset (grid existe)
+        if not hasattr(self.env, 'grid') or self.env.grid is None:
+            return 0
+
+        grid  = self.env.grid
+        start = tuple(self.env.agent_pos)
+        size  = self.env.size
+        keys  = self.env.keys_held
+
+        queue   = deque([(start, [], keys)])
+        visited = {(start, keys)}
+        moves   = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # haut bas gauche droite
+
+        while queue:
+            (r, c), path, k = queue.popleft()
+
+            if grid[r][c] == 5:  # EXIT
+                return path[0] if path else 0
+
+            for i, (dr, dc) in enumerate(moves):
+                nr, nc = r + dr, c + dc
+                if not (0 <= nr < size and 0 <= nc < size):
+                    continue
+                cell = grid[nr][nc]
+                if cell == 0:              # WALL
+                    continue
+                if cell == 4:              # TRAP — éviter
+                    continue
+                if cell == 3 and k == 0:  # DOOR sans clé
+                    continue
+                new_k = k - 1 if cell == 3 else (k + 1 if cell == 2 else k)
+                state = ((nr, nc), new_k)
+                if state not in visited:
+                    visited.add(state)
+                    queue.append(((nr, nc), path + [i], new_k))
+
+        return 0  # aucun chemin trouvé
