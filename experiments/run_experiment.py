@@ -2,6 +2,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -18,13 +19,14 @@ env_params = dict(size=9, n_keys=1, n_traps=1, max_steps=200)
 
 # ------------------------------------------------------------------
 def evaluate_agent(agent, env_params, seeds, bfs=False):
-    """bfs=True : l'agent partage l'env pour accéder à grid/agent_pos."""
     env = MazeEnv(**env_params)
     if bfs:
         agent.env = env
     rewards = []
     for s in seeds:
         obs, _ = env.reset(seed=s)
+        if hasattr(agent, 'reset_memory'):
+            agent.reset_memory()
         done, total = False, 0.0
         while not done:
             obs, r, term, trunc, _ = env.step(agent.decide(obs))
@@ -37,14 +39,51 @@ def evaluate_agent(agent, env_params, seeds, bfs=False):
 # 1. Entraîner l'AG
 print("=== Entraînement de l'algorithme génétique ===")
 train_env = MazeEnv(**env_params)
-ga = GeneticAlgorithm(pop_size=100, n_generations=150, mutation_rate=0.30,elitism_k=2)
+ga = GeneticAlgorithm(pop_size=100, n_generations=150, mutation_rate=0.30, elitism_k=2)
 best_agent, best_hist, avg_hist = ga.run(train_env)
 
 print("\nMeilleur génome évolué :")
 best_agent.describe()
 
 # ------------------------------------------------------------------
-# 2. Évaluer toutes les baselines
+# 2. Démonstration visuelle du meilleur agent
+print("\n=== Démonstration de l'agent AG (seed=0) ===")
+print("Légende : A=Agent  K=Clé  D=Porte  X=Piège  E=Sortie  █=Mur")
+time.sleep(1)
+
+demo_env = MazeEnv(**env_params)
+obs, _ = demo_env.reset(seed=0)
+done = False
+step_count = 0
+total_demo = 0.0
+
+while not done:
+    os.system('cls')
+    print(f"=== Agent AG — Pas {step_count} | Récompense cumulée: {total_demo:.2f} ===")
+    print("Légende : A=Agent  K=Clé  D=Porte  X=Piège  E=Sortie  █=Mur\n")
+    demo_env.render()
+    action_names = ["haut", "bas", "gauche", "droite"]
+    action = best_agent.decide(obs)
+    print(f"\nAction choisie : {action_names[action]}")
+    obs, r, term, trunc, _ = demo_env.step(action)
+    total_demo += r
+    step_count += 1
+    done = term or trunc
+    time.sleep(0.25)
+
+os.system('cls')
+print(f"=== Fin de l'épisode — {step_count} pas | Récompense finale: {total_demo:.2f} ===")
+demo_env.render()
+if total_demo > 5:
+    print("\n✓ L'agent a trouvé la sortie !")
+elif total_demo < -1.5:
+    print("\n✗ L'agent est tombé dans un piège ou a timeout.")
+else:
+    print("\n~ Episode terminé.")
+time.sleep(2)
+
+# ------------------------------------------------------------------
+# 3. Évaluer toutes les baselines
 print("\n=== Évaluation sur 30 épisodes de test ===")
 
 results = {
@@ -59,10 +98,9 @@ for name, (mean, std) in results.items():
     print(f"{name:<20} {mean:>15.2f}  {std:>12.2f}")
 
 # ------------------------------------------------------------------
-# 3. Graphiques
+# 4. Graphiques
 os.makedirs("results/plots", exist_ok=True)
 
-# Courbe de convergence
 plt.figure(figsize=(10, 4))
 plt.plot(best_hist, label="Meilleur fitness")
 plt.plot(avg_hist,  label="Fitness moyen", alpha=0.7)
@@ -75,7 +113,6 @@ plt.tight_layout()
 plt.savefig("results/plots/convergence.png", dpi=150)
 print("\nCourbe sauvegardée : results/plots/convergence.png")
 
-# Boxplot comparatif
 fig, ax = plt.subplots(figsize=(8, 5))
 all_rewards = {}
 for name, _ in results.items():

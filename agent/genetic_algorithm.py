@@ -8,6 +8,7 @@ def evaluate_fitness(genome, env, n_episodes=10, seed_start=0):
     total = 0.0
     for ep in range(n_episodes):
         obs, _ = env.reset(seed=seed_start + ep)
+        genome.reset_memory()
         done = False
         ep_reward = 0.0
         while not done:
