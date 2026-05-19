@@ -6,16 +6,19 @@ from agent.genome import RuleBasedGenome
 def evaluate_fitness(genome, env, n_episodes=10, seed_start=0):
     """Fitness = récompense moyenne sur n_episodes épisodes avec seeds variés."""
     total = 0.0
+    max_guard = env.max_steps + 10  # FIX : garde-fou absolu
     for ep in range(n_episodes):
         obs, _ = env.reset(seed=seed_start + ep)
         genome.reset_memory()
         done = False
         ep_reward = 0.0
-        while not done:
+        step_count = 0
+        while not done and step_count < max_guard:  # FIX : plus de boucle infinie
             action = genome.decide(obs)
             obs, r, term, trunc, _ = env.step(action)
             ep_reward += r
             done = term or trunc
+            step_count += 1
         total += ep_reward
     return total / n_episodes
 
@@ -51,7 +54,6 @@ class GeneticAlgorithm:
         last_best  = -999
 
         for gen in range(self.n_generations):
-            # Seeds différents à chaque génération pour éviter la sur-adaptation
             seed_start = gen * 10
             fitnesses = [evaluate_fitness(ind, env, seed_start=seed_start)
                          for ind in population]
@@ -63,7 +65,6 @@ class GeneticAlgorithm:
             print(f"Gen {gen+1:3d}/{self.n_generations}  "
                   f"best={best_hist[-1]:.2f}  avg={avg_hist[-1]:.2f}")
 
-            # Détection stagnation → injection de diversité
             if best_val <= last_best + 0.01:
                 stagnation += 1
             else:
@@ -75,11 +76,9 @@ class GeneticAlgorithm:
                 stagnation = 0
                 print(f"  *** Injection de diversité (gen {gen+1}) ***")
 
-            # Élitisme
             sorted_pop = sorted(zip(fitnesses, population), key=lambda x: x[0], reverse=True)
             elites = [ind for _, ind in sorted_pop[:self.elitism_k]]
 
-            # Nouvelle population
             new_pop = elites[:]
             while len(new_pop) < self.pop_size:
                 p1 = self._tournament_select(population, fitnesses)

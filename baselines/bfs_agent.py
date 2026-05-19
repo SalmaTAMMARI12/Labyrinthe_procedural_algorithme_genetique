@@ -8,7 +8,6 @@ class BFSAgent:
         self.env = env
 
     def decide(self, obs):
-        # S'assurer que l'env a bien été reset (grid existe)
         if not hasattr(self.env, 'grid') or self.env.grid is None:
             return 0
 
@@ -19,7 +18,7 @@ class BFSAgent:
 
         queue   = deque([(start, [], keys)])
         visited = {(start, keys)}
-        moves   = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # haut bas gauche droite
+        moves   = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
         while queue:
             (r, c), path, k = queue.popleft()
@@ -32,16 +31,22 @@ class BFSAgent:
                 if not (0 <= nr < size and 0 <= nc < size):
                     continue
                 cell = grid[nr][nc]
-                if cell == 0:              # WALL
+                if cell == 0 or cell == 4:   # WALL ou TRAP
                     continue
-                if cell == 4:              # TRAP — éviter
+                if cell == 3 and k <= 0:     # DOOR sans clé
                     continue
-                if cell == 3 and k == 0:  # DOOR sans clé
-                    continue
-                new_k = k - 1 if cell == 3 else (k + 1 if cell == 2 else k)
+
+                # FIX : empêcher les clés négatives
+                if cell == 3:
+                    new_k = max(0, k - 1)
+                elif cell == 2 and k == 0:
+                    new_k = 1
+                else:
+                    new_k = k
+
                 state = ((nr, nc), new_k)
                 if state not in visited:
                     visited.add(state)
                     queue.append(((nr, nc), path + [i], new_k))
 
-        return 0  # aucun chemin trouvé
+        return 0

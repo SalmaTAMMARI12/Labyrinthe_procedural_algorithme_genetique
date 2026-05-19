@@ -62,6 +62,7 @@ class RuleBasedGenome:
         ]
 
     def reset_memory(self):
+        """Réinitialise la mémoire de visite entre les épisodes."""
         self._visited = {}
         self._last_action = None
 
@@ -81,11 +82,25 @@ class RuleBasedGenome:
             active.sort(reverse=True)
             action = active[0][1]
 
-        # Anti-oscillation
+        # FIX anti-oscillation : on évite l'opposé SEULEMENT si une
+        # autre action est praticable (non-mur). Sinon on garde l'action
+        # originale pour ne pas boucler indéfiniment sur des murs.
         opposites = {0: 1, 1: 0, 2: 3, 3: 2}
         if self._last_action is not None and action == opposites[self._last_action]:
-            other = [a for a in [0, 1, 2, 3] if a != action and a != self._last_action]
-            action = random.choice(other)
+            # Actions libres = pas de mur dans la vue locale
+            wall_for = {
+                0: view[1][2] == 0,  # haut
+                1: view[3][2] == 0,  # bas
+                2: view[2][1] == 0,  # gauche
+                3: view[2][3] == 0,  # droite
+            }
+            other = [
+                a for a in [0, 1, 2, 3]
+                if a != action and a != self._last_action and not wall_for[a]
+            ]
+            if other:
+                action = random.choice(other)
+            # si other est vide (couloir) → on garde l'action choisie par les règles
 
         key = (view.tobytes(), action)
         self._visited[key] = self._visited.get(key, 0) + 1
