@@ -11,14 +11,12 @@ from agent.genetic_algorithm import GeneticAlgorithm, evaluate_fitness
 from baselines.random_agent import RandomAgent
 from baselines.bfs_agent import BFSAgent
 
-# ------------------------------------------------------------------
 N_EVAL = 30
 SEEDS  = list(range(N_EVAL))
 BFS_SEEDS = SEEDS[:5]
 
 env_params = dict(size=9, n_keys=1, n_traps=1, max_steps=200)
 
-# ------------------------------------------------------------------
 def evaluate_agent(agent, env_params, seeds, bfs=False):
     """Retourne (mean, std, liste_rewards) pour pouvoir réutiliser les rewards."""
     env = MazeEnv(**env_params)
@@ -42,8 +40,7 @@ def evaluate_agent(agent, env_params, seeds, bfs=False):
 
     return float(np.mean(rewards)), float(np.std(rewards)), rewards
 
-# ------------------------------------------------------------------
-# 1. Entraîner l'AG
+
 print("=== Entraînement de l'algorithme génétique ===")
 train_env = MazeEnv(**env_params)
 ga = GeneticAlgorithm(pop_size=100, n_generations=150, mutation_rate=0.30, elitism_k=2)
@@ -52,8 +49,6 @@ best_agent, best_hist, avg_hist = ga.run(train_env)
 print("\nMeilleur génome évolué :")
 best_agent.describe()
 
-# ------------------------------------------------------------------
-# 2. Démonstration visuelle
 print("\n=== Démonstration de l'agent AG (seed=0) ===")
 time.sleep(1)
 
@@ -79,24 +74,22 @@ os.system('cls')
 print(f"=== Fin de l'épisode — {step_count} pas | Récompense finale: {total_demo:.2f} ===")
 demo_env.render()
 if total_demo > 5:
-    print("\n✓ L'agent a trouvé la sortie !")
+    print("\n L'agent a trouvé la sortie ")
 elif total_demo < -1.5:
-    print("\n✗ L'agent est tombé dans un piège ou a timeout.")
+    print("\n L'agent est tombé dans un piège ou a timeout.")
 else:
     print("\n~ Episode terminé.")
 time.sleep(2)
 
-# ------------------------------------------------------------------
-# 3. Évaluation — on garde les rewards pour le boxplot (pas de double calcul)
 print("\n=== Évaluation sur 30 épisodes de test ===")
 
-print("  → évaluation AG...")
+print("   évaluation AG...")
 ag_mean, ag_std, ag_rews   = evaluate_agent(best_agent, env_params, SEEDS)
-print("  → évaluation aléatoire...")
+print("   évaluation aléatoire...")
 rd_mean, rd_std, rd_rews   = evaluate_agent(RandomAgent(), env_params, SEEDS)
-print("  → évaluation BFS...")
+print("   évaluation BFS...")
 bfs_mean, bfs_std, bfs_rews = evaluate_agent(None, env_params, BFS_SEEDS, bfs=True)
-print("  → done")
+print("   done")
 
 print(f"\n{'Agent':<20} {'Récompense moy':>15}  {'Écart-type':>12}")
 print("-" * 50)
@@ -104,8 +97,6 @@ print(f"{'AG (notre agent)':<20} {ag_mean:>15.2f}  {ag_std:>12.2f}")
 print(f"{'Agent aléatoire':<20} {rd_mean:>15.2f}  {rd_std:>12.2f}")
 print(f"{'Agent BFS':<20} {bfs_mean:>15.2f}  {bfs_std:>12.2f}")
 
-# ------------------------------------------------------------------
-# 4. Graphiques — on réutilise les rewards déjà calculés, AUCUN recalcul
 os.makedirs("results/plots", exist_ok=True)
 
 plt.figure(figsize=(10, 4))
@@ -120,7 +111,6 @@ plt.tight_layout()
 plt.savefig("results/plots/convergence.png", dpi=150)
 print("\nCourbe sauvegardée : results/plots/convergence.png")
 
-# Boxplot — réutilise ag_rews, rd_rews, bfs_rews déjà calculés
 fig, ax = plt.subplots(figsize=(8, 5))
 ax.boxplot(
     [ag_rews, rd_rews, bfs_rews],

@@ -13,5 +13,5 @@ for i in range(10):
     obs, reward, term, trunc, _ = env.step(action)
     print(f"  action={action}, reward={reward:.2f}, term={term}, trunc={trunc}")
     if term or trunc:
-        print("  Episode terminé!")
+        print("  Episode terminé")
         break
